@@ -5,12 +5,18 @@ from config import GOOGLE_API_KEY, PERSONALITIES, GEMINI_CONFIG
 from database.models import UserModel, MessageModel
 from utils.decorators import subscription_required
 import asyncio
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+import requests
+from urllib.parse import quote
+# Change this line
+from handlers.personality import PersonalityHandler  # Correct import path
 
 class ChatHandler:
-    def __init__(self):
+    def __init__(self, personality_handler=None):
         self.user_model = UserModel()
         self.message_model = MessageModel()
-        
+        self.personality_handler = personality_handler or PersonalityHandler()
+
         # Configure Gemini
         genai.configure(api_key=GOOGLE_API_KEY)
         self.model = genai.GenerativeModel(
@@ -61,10 +67,67 @@ encourage them to share more while maintaining your {personality} character."""
             error_message = f"An error occurred: {str(e)}"
             await update.message.reply_text(error_message)
 
+    @subscription_required
+    async def handle_generate_image(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not context.args:
+            await update.message.reply_text("Please provide a prompt after /gen command.\n\n e.g. /gen a cute cat")
+            return
+
+        try:
+            chat_id = update.effective_chat.id
+            await context.bot.send_chat_action(chat_id=chat_id, action="upload_photo")
+            
+            prompt = ' '.join(context.args)
+            encoded_prompt = quote(prompt)
+            image_url = f"https://pollinations.ai/p/{encoded_prompt}?width=1024&height=1024&seed=42&model=flux"
+
+            # Add request timeout and retry logic
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    loop = asyncio.get_event_loop()
+                    response = await loop.run_in_executor(
+                        None, 
+                        lambda: requests.get(image_url, timeout=10)
+                    )
+                    response.raise_for_status()
+                    break
+                except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+                    if attempt == max_retries - 1:
+                        raise
+                    await asyncio.sleep(1)
+                    await context.bot.send_chat_action(chat_id=chat_id, action="upload_photo")
+
+            # Send image immediately after successful download
+            await update.message.reply_photo(photo=response.content)
+
+        except requests.exceptions.Timeout:
+            await update.message.reply_text("Image generation timed out. Please try again.")
+        except Exception as e:
+            error_message = f"Image generation failed: {str(e)}"
+            await update.message.reply_text(error_message)
+
     async def clear_history(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        user_id = update.message.from_user.id
-        self.message_model.db.messages.update_one(
-            {"user_id": user_id},
-            {"$set": {"conversation": []}}
+        keyboard = [
+            [InlineKeyboardButton("Yes", callback_data='clear_yes')],
+            [InlineKeyboardButton("No", callback_data='clear_no')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(
+            "Are you sure you want to clear your chat history?",
+            reply_markup=reply_markup
         )
-        await update.message.reply_text("Chat history cleared!")
+
+    async def handle_clear_confirmation(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        query = update.callback_query
+        await query.answer()
+        
+        if query.data == 'clear_yes':
+            user_id = query.from_user.id
+            self.message_model.db.messages.update_one(
+                {"user_id": user_id},
+                {"$set": {"conversation": []}}
+            )
+            await query.edit_message_text("Chat history cleared!")
+        else:
+            await query.edit_message_text("Chat history was not cleared.")
