@@ -1,6 +1,7 @@
 # AI Telegram Bot
 
 A powerful Telegram bot powered by Google's Gemini AI, featuring multiple personalities, admin controls, and user activity logging.
+👉 **[Try the Bot Now](https://t.me/GeminiVersebot)** 
 
 ## 🚀 Features
 
@@ -108,5 +109,5 @@ chat_bot/
 ---
 
 Built with ❤️ by **Aditya** using **Gemini API** and **MongoDB**. ✨
-
+**Check it out:** [https://t.me/GeminiVersebot](https://t.me/GeminiVersebot)
 
