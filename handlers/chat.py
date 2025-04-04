@@ -78,8 +78,18 @@ encourage them to share more while maintaining your {personality} character."""
             await context.bot.send_chat_action(chat_id=chat_id, action="upload_photo")
             
             prompt = ' '.join(context.args)
-            encoded_prompt = quote(prompt)
-            image_url = f"https://pollinations.ai/p/{encoded_prompt}?width=1024&height=1024&seed=42&model=flux"
+            api_url = "https://aiart-zroo.onrender.com/api/generate"
+            
+            # Prepare the request data according to API documentation
+            data = {
+                "video_description": prompt,
+                "test_mode": False
+            }
+            
+            headers = {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
 
             # Add request timeout and retry logic
             max_retries = 3
@@ -88,21 +98,37 @@ encourage them to share more while maintaining your {personality} character."""
                     loop = asyncio.get_event_loop()
                     response = await loop.run_in_executor(
                         None, 
-                        lambda: requests.get(image_url, timeout=10)
+                        lambda: requests.post(api_url, json=data, headers=headers, timeout=60)
                     )
                     response.raise_for_status()
+                    
+                    # Extract image URL from response
+                    result = response.json()
+                    if 'error' in result:
+                        raise ValueError(result['error'])
+                    
+                    image_url = result.get('image_url')
+                    if not image_url:
+                        raise ValueError("No image URL in response")
+                        
+                    # Download the generated image
+                    img_response = await loop.run_in_executor(
+                        None,
+                        lambda: requests.get(image_url, timeout=10)
+                    )
+                    img_response.raise_for_status()
                     break
                 except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
                     if attempt == max_retries - 1:
                         raise
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(2)  # Longer delay between retries
                     await context.bot.send_chat_action(chat_id=chat_id, action="upload_photo")
 
             # Send image immediately after successful download
-            await update.message.reply_photo(photo=response.content)
+            await update.message.reply_photo(photo=img_response.content)
 
         except requests.exceptions.Timeout:
-            await update.message.reply_text("Image generation timed out. Please try again.")
+            await update.message.reply_text("Image generation timed out. Please try again later.")
         except Exception as e:
             error_message = f"Image generation failed: {str(e)}"
             await update.message.reply_text(error_message)
