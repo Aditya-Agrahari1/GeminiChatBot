@@ -8,8 +8,10 @@ import asyncio
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 import requests
 from urllib.parse import quote
-# Change this line
-from handlers.personality import PersonalityHandler  # Correct import path
+from handlers.personality import PersonalityHandler 
+
+# Don't Forget to Star the Repo ⭐ [https://github.com/Aditya-Agrahari1/GeminiChatBot]
+#Support OpenSource
 
 class ChatHandler:
     def __init__(self, personality_handler=None):
