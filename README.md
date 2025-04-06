@@ -44,7 +44,7 @@ pip install -r requirements.txt
 3. **Create a `.env` file with your credentials:**
 ```env
 TELEGRAM_TOKEN=your_telegram_bot_token
-GOOGLE_API_KEY=your_gemini_api_key
+GOOGLE_API_KEY=your_gemini_api_key # 👉 How to get: Go to https://makersuite.google.com/app/apikey and click "Create API key"
 MONGODB_URI=your_mongodb_uri
 ADMIN_ID=your_telegram_id
 TELEGRAM_LOG_CHANNEL=your_log_channel_id
