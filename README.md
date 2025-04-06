@@ -113,4 +113,4 @@ Built with ❤️ by **Aditya** using **Gemini API** and **MongoDB**. ✨
 
 **Check it out:** [https://t.me/GeminiVersebot](https://t.me/GeminiVersebot)
 
-💬 For inquiries or suggestions, feel free to reach out via [agrahariaditya005@gmail.com](mailto:agrahariaditya005@gmail.com) or message me on [Telegram](https://t.me/xKiteretsu)!
+💬 For inquiries or suggestions, feel free to reach out via [Telegram](https://t.me/StarkAditya) or email me at: [aditya@example.com](mailto:aditya@example.com)
